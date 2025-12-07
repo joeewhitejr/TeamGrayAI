@@ -84,14 +84,14 @@ namespace Module8
             // So they don't repeat each other.
 
             // We need to populate the guesses list, but not for every instance - so we only do it if the set is missing some guesses
-            if (Guesses.Count < _gridSize*_gridSize)
+            if (Guesses.Count < _gridSize * _gridSize)
             {
                 Guesses.Clear();
                 for (int x = 0; x < _gridSize; x++)
                 {
                     for (int y = 0; y < _gridSize; y++)
                     {
-                        Guesses.Add(new Position(x,y));
+                        Guesses.Add(new Position(x, y));
                     }
                 }
             }
@@ -100,19 +100,61 @@ namespace Module8
         public string Name { get; }
         public int Index => _index;
 
+        private readonly Queue<Position> _targetQueue = new Queue<Position>();
         public Position GetAttackPosition()
         {
-            // TeamGrayAI just guesses random squares. Its smart in that it never repeats a move from any other random 
-            // player since they share the same set of guesses
-            // But it doesn't take into account any other players guesses
-            var guess = Guesses[Random.Next(Guesses.Count)];
-            Guesses.Remove(guess); // Don't use this one again
+            Position guess;
+
+            // If we have positions to target (from a previous hit), use them first
+            if (_targetQueue.Count > 0)
+            {
+                guess = _targetQueue.Dequeue();
+                // Make sure this guess hasn't already been used
+                if (!Guesses.Contains(guess))
+                    return GetAttackPosition(); // skip invalid positions
+            }
+            else
+            {
+                // Otherwise pick a random position
+                guess = Guesses[Random.Next(Guesses.Count)];
+            }
+
+            // Remove the guessed position from the shared pool
+            Guesses.Remove(guess);
+
             return guess;
         }
 
         public void SetAttackResults(List<AttackResult> results)
         {
-            // Random player does nothing useful with these results, just keeps on making random guesses
+            foreach (var result in results)
+            {
+                if (result.ResultType == AttackResultType.Hit)
+                {
+                    AddAdjacentTargets(result.Position);
+                }
+            }
+        }
+
+        private void AddAdjacentTargets(Position pos)
+        {
+            // Left, Right, Up, Down
+            Position[] adjacent = new Position[]
+            {
+                new Position(pos.X + 1, pos.Y),
+                new Position(pos.X - 1, pos.Y),
+                new Position(pos.X, pos.Y - 1),
+                new Position(pos.X, pos.Y + 1)
+            };
+
+            foreach (var p in adjacent)
+            {
+                // Only add valid positions that haven't been guessed yet
+                if (p.X >= 0 && p.X < _gridSize && p.Y >= 0 && p.Y < _gridSize && Guesses.Contains(p))
+                {
+                    _targetQueue.Enqueue(p);
+                }
+            }
         }
     }
 }
