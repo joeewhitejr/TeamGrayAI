@@ -137,7 +137,6 @@ namespace Module8
 
                 // If we have positions to target (from a previous hit), use them first
                 guess = _targetQueue.Dequeue();
-                // Make sure this guess exists in the target pool FIX THIS, NOT WORKING PROPERLY
                 if (Guesses.Contains(guess))
                 {
                     lastGuess = guess;
