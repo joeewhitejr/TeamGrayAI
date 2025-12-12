@@ -7,6 +7,7 @@ namespace Module8
     internal class TeamGrayAI : IPlayer
     {
         private static readonly List<Position> Guesses = new List<Position>();
+        private static readonly List<Position> FinalGuesses = new List<Position>(); // only guess squares that include our battleship after all other guesses have been made
         private int _index;
         private static readonly Random Random = new Random();
         private int _gridSize;
@@ -121,6 +122,16 @@ namespace Module8
                         Guesses.Add(new Position(x, y));
                     }
                 }
+                FinalGuesses.Clear();
+                    for (int i = Guesses.Count - 1; i >= 0; i--)
+                    {
+                        if ((Guesses[i].Y == _gridSize - 1) && (Guesses[i].X >= _gridSize - 4) && (Guesses[i].X <= _gridSize - 1))
+                        {
+                            FinalGuesses.Add(Guesses[i]);
+                            Guesses.Remove(Guesses[i]);
+                        
+                        }
+                    }
             }
         }
 
@@ -132,29 +143,36 @@ namespace Module8
         {
             hitCheckedThisTurn = false;
             Position guess;
-            while (_targetQueue.Count > 0)
+            if (Guesses.Count > 0)
             {
-                Debug.WriteLine("Next up in Queue: " + _targetQueue.Peek().X + ", " + _targetQueue.Peek().Y);
-
-                // If we have positions to target (from a previous hit), use them first
-                guess = _targetQueue.Dequeue();
-                if (Guesses.Contains(guess))
+                while (_targetQueue.Count > 0)
                 {
-                    lastGuess = guess;
-                    Guesses.Remove(guess);
-                    return lastGuess;
+                    Debug.WriteLine("Next up in Queue: " + _targetQueue.Peek().X + ", " + _targetQueue.Peek().Y);
+
+                    // If we have positions to target (from a previous hit), use them first
+                    guess = _targetQueue.Dequeue();
+                    if (Guesses.Contains(guess))
+                    {
+                        lastGuess = guess;
+                        Guesses.Remove(guess);
+                        return lastGuess;
+                    }
                 }
+
+                // Otherwise pick a random position
+                guess = Guesses[Random.Next(Guesses.Count)];
+
+                // Remove the guessed position from the shared pool
+                Debug.WriteLine("x: " + guess.X + "  y: " + guess.Y);
+                lastGuess = guess;
+                Guesses.Remove(guess);
+
+                return lastGuess;
             }
-
-            // Otherwise pick a random position
-            guess = Guesses[Random.Next(Guesses.Count)];
-
-            // Remove the guessed position from the shared pool
-            Debug.WriteLine("x: " + guess.X + "  y: " + guess.Y);
-            lastGuess = guess;
-            Guesses.Remove(guess);
-
-            return lastGuess;
+            else
+            {
+                return FinalGuesses[Random.Next(FinalGuesses.Count)]; // Only guess squares containing our battleship after all other options have been exhausted
+            }
         }
         public void SetAttackResults(List<AttackResult> results)
         {
@@ -168,6 +186,43 @@ namespace Module8
                         Debug.WriteLine("HIT DETECTED - Position: " + lastGuess.X + ", " + lastGuess.Y);
                         AddAdjacentTargets(lastGuess);
                     }
+                }
+            }
+            else // This removes guesses that other players have guessed. Prevents us from wasting shots on squares that have already been guessed.
+            {
+                foreach (var result in results)
+                {
+                    Debug.WriteLine("Other player shot: " + result.Position.X + ", " + result.Position.Y);
+
+                    Position otherPlayerGuess = result.Position;
+
+                    for (int k = 0; k < Guesses.Count; ++k)
+                    {
+                        Debug.Write(Guesses[k].X + "," + Guesses[k].Y + "|");
+                    }
+                    Debug.WriteLine("");
+
+                    for (int i = 0; i < Guesses.Count; ++i)
+                    {
+                        if ((Guesses[i].X == otherPlayerGuess.X) && (Guesses[i].Y == otherPlayerGuess.Y))
+                        {
+                            Guesses.Remove(Guesses[i]);
+                        }
+                    }
+
+                    Debug.WriteLine("Attempted to remove guess: " + otherPlayerGuess.X + ", " + otherPlayerGuess.Y + " | new guess list:");
+
+                    for (int k = 0; k < Guesses.Count; ++k)
+                    {
+                        Debug.Write(Guesses[k].X + "," + Guesses[k].Y + "|");
+                    }
+                    Debug.WriteLine("");
+                    Debug.WriteLine("Final Guesses list: ");
+                    for (int k = 0; k < FinalGuesses.Count; ++k)
+                    {
+                        Debug.Write(FinalGuesses[k].X + "," + FinalGuesses[k].Y + "|");
+                    }
+                    Debug.WriteLine("");
                 }
             }
         }
