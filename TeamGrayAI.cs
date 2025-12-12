@@ -82,7 +82,8 @@ namespace Module8
                         int by = gridSize - 1;
 
                         // Random X so the ship always fits horizontally
-                        int bx = Random.Next(gridSize - ship.Length + 1);
+                        //int bx = Random.Next(gridSize - ship.Length + 1);
+                        int bx = gridSize - 4;
 
                         // Mark occupied before placing
                         for (int i = 0; i < ship.Length; i++)
