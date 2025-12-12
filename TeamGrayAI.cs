@@ -131,44 +131,30 @@ namespace Module8
         {
             hitCheckedThisTurn = false;
             Position guess;
-            if (_targetQueue.Count > 0)
+            while (_targetQueue.Count > 0)
             {
                 Debug.WriteLine("Next up in Queue: " + _targetQueue.Peek().X + ", " + _targetQueue.Peek().Y);
-            }
 
-            // If we have positions to target (from a previous hit), use them first
-            if (_targetQueue.Count > 0)
-            {
+                // If we have positions to target (from a previous hit), use them first
                 guess = _targetQueue.Dequeue();
-                bool goodGuess = false;
                 // Make sure this guess exists in the target pool FIX THIS, NOT WORKING PROPERLY
-                while (!goodGuess && (_targetQueue.Count > 0))
+                if (Guesses.Contains(guess))
                 {
-                    if (!Guesses.Contains(guess))
-                    {
-                        goodGuess = true;
-                    }
-                    else
-                    {
-                        guess = _targetQueue.Dequeue();
-                    }
+                    lastGuess = guess;
+                    Guesses.Remove(guess);
+                    return lastGuess;
                 }
             }
-            else
-            {
-                // Otherwise pick a random position
-                guess = Guesses[Random.Next(Guesses.Count)];
-            }
+
+            // Otherwise pick a random position
+            guess = Guesses[Random.Next(Guesses.Count)];
 
             // Remove the guessed position from the shared pool
             Debug.WriteLine("x: " + guess.X + "  y: " + guess.Y);
             lastGuess = guess;
-
             Guesses.Remove(guess);
 
-
-
-            return guess;
+            return lastGuess;
         }
         public void SetAttackResults(List<AttackResult> results)
         {
@@ -186,31 +172,29 @@ namespace Module8
             }
         }
 
+        private Position FindExisting(int x, int y)
+        {
+            return Guesses.Find(p => p.X == x && p.Y == y);
+        }
+
         private void AddAdjacentTargets(Position lastGuess)
         {
             // Left, Right, Up, Down
-            _targetQueue.Clear();
 
-            Position[] adjacent = new Position[]
+            Position[] adjacent =
             {
-                new Position(lastGuess.X + 1, lastGuess.Y),
-                new Position(lastGuess.X - 1, lastGuess.Y),
-                new Position(lastGuess.X, lastGuess.Y - 1),
-                new Position(lastGuess.X, lastGuess.Y + 1)
+                FindExisting(lastGuess.X + 1, lastGuess.Y),
+                FindExisting(lastGuess.X - 1, lastGuess.Y),
+                FindExisting(lastGuess.X, lastGuess.Y - 1),
+                FindExisting(lastGuess.X, lastGuess.Y + 1)
             };
-            Debug.WriteLine("Created: " + adjacent[0].X + ", " + adjacent[0].Y);
-            Debug.WriteLine("Created: " + adjacent[1].X + ", " + adjacent[1].Y);
-            Debug.WriteLine("Created: " + adjacent[2].X + ", " + adjacent[2].Y);
-            Debug.WriteLine("Created: " + adjacent[3].X + ", " + adjacent[3].Y);
 
-            foreach (var p in adjacent)
+            foreach (var pos in adjacent)
             {
-                //Only add valid positions, previous use checking will happen in getAttackPosition()
-                if ((p.X >= 0) && (p.X < _gridSize) && (p.Y >= 0) && (p.Y < _gridSize))
+                if (pos != null)
                 {
-                    _targetQueue.Enqueue(p);
-                    Debug.WriteLine("Added to queue: " + p.X + ", " + p.Y);
-
+                    // must exist in Guesses or be skipped
+                    _targetQueue.Enqueue(pos);
                 }
             }
         }
